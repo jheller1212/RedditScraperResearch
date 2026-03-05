@@ -36,15 +36,15 @@ jobs:
           # Get commit messages for the body
           COMMITS=$(git log origin/main..HEAD --pretty=format:"- %s" 2>/dev/null || echo "- Initial commit")
 
+          # Build body
+          BODY="## Commits
+          ${COMMITS}
+
+          ---
+          *Auto-generated PR from branch \`${BRANCH}\`*"
+
           gh pr create \
             --title "$TITLE" \
-            --body "$(cat <<EOF
-## Commits
-$COMMITS
-
----
-*Auto-generated PR from branch \`$BRANCH\`*
-EOF
-)" \
+            --body "$BODY" \
             --base main \
             --head "$BRANCH"
