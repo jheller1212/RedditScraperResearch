@@ -1,0 +1,44 @@
+name: Auto PR
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create PR if none exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+
+          # Check if a PR already exists for this branch
+          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq length)
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "PR already exists for $BRANCH, skipping."
+            exit 0
+          fi
+
+          # Build title from branch name: claude/some-feature-name-XYZ -> Some feature name
+          TITLE=$(echo "$BRANCH" | sed 's|claude/||' | sed 's|-[A-Za-z0-9]*$||' | tr '-' ' ' | sed 's/\b\(.\)/\u\1/')
+
+          # Get commit messages for the body
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"- %s" 2>/dev/null || echo "- Initial commit")
+
+          gh pr create \
+            --title "$TITLE" \
+            --body "## Commits
+          $COMMITS
+
+          ---
+          *Auto-generated PR from branch \`$BRANCH\`*" \
+            --base main \
+            --head "$BRANCH"
