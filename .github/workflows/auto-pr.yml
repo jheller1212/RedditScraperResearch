@@ -20,6 +20,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
           BRANCH="${GITHUB_REF_NAME}"
 
           # Check if a PR already exists for this branch
@@ -36,12 +37,8 @@ jobs:
           # Get commit messages for the body
           COMMITS=$(git log origin/main..HEAD --pretty=format:"- %s" 2>/dev/null || echo "- Initial commit")
 
-          # Build body
-          BODY="## Commits
-          ${COMMITS}
-
-          ---
-          *Auto-generated PR from branch \`${BRANCH}\`*"
+          # Build body using printf to avoid YAML indentation issues
+          BODY=$(printf '## Commits\n%s\n\n---\n*Auto-generated PR from branch `%s`*' "$COMMITS" "$BRANCH")
 
           gh pr create \
             --title "$TITLE" \
