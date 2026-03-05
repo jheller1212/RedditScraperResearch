@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reddit Scraper</title>
+  <title>LemonSqueeze - Reddit Scraper</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div class="bg-blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
   <div class="app">
     <nav class="topbar">
       <div class="topbar-inner">
         <div class="logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="15" x2="9.01" y2="15"/><line x1="15" y1="15" x2="15.01" y2="15"/></svg>
-          Reddit Scraper
+          <span class="logo-icon">🍋</span>
+          <span class="logo-text">LemonSqueeze</span>
         </div>
         <button class="theme-toggle" id="themeToggle" title="Toggle theme">
           <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -27,24 +33,28 @@
 
     <main class="main">
       <div class="hero">
-        <h1>Scrape any subreddit</h1>
-        <p>Collect posts and comments for research and analysis. No API keys needed.</p>
+        <div class="hero-icon">🍋</div>
+        <h1>Squeeze the juice out of any subreddit</h1>
+        <p>scrape posts & comments for research. no api keys. no cap.</p>
       </div>
 
       <!-- Subreddit Input -->
       <div class="input-group">
         <div class="input-wrapper">
           <span class="input-prefix">r/</span>
-          <input type="text" id="subreddit" placeholder="subreddit name or full URL" autocomplete="off" spellcheck="false" />
+          <input type="text" id="subreddit" placeholder="drop a subreddit name or URL" autocomplete="off" spellcheck="false" />
         </div>
-        <button class="btn-scrape" id="scrapeBtn">Scrape</button>
+        <button class="btn-scrape" id="scrapeBtn">
+          <span class="btn-text">Squeeze</span>
+          <span class="btn-icon">🍋</span>
+        </button>
         <button class="btn-stop hidden" id="stopBtn">Stop</button>
       </div>
 
       <!-- Scrape Options -->
-      <div class="options-panel">
+      <div class="options-panel glass-card">
         <div class="options-header">
-          <h2>Options</h2>
+          <h2>Settings</h2>
         </div>
 
         <div class="options-grid">
@@ -118,7 +128,7 @@
       </div>
 
       <!-- Progress -->
-      <div id="progress" class="progress-card hidden">
+      <div id="progress" class="progress-card glass-card hidden">
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         <p id="statusText">Starting...</p>
       </div>
