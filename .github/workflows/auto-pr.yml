@@ -13,6 +13,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Create PR if none exists
         env:
@@ -28,17 +30,21 @@ jobs:
           fi
 
           # Build title from branch name: claude/some-feature-name-XYZ -> Some feature name
-          TITLE=$(echo "$BRANCH" | sed 's|claude/||' | sed 's|-[A-Za-z0-9]*$||' | tr '-' ' ' | sed 's/\b\(.\)/\u\1/')
+          RAW=$(echo "$BRANCH" | sed 's|claude/||' | sed 's|-[A-Za-z0-9]*$||' | tr '-' ' ')
+          TITLE="$(echo "$RAW" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')"
 
           # Get commit messages for the body
           COMMITS=$(git log origin/main..HEAD --pretty=format:"- %s" 2>/dev/null || echo "- Initial commit")
 
           gh pr create \
             --title "$TITLE" \
-            --body "## Commits
-          $COMMITS
+            --body "$(cat <<EOF
+## Commits
+$COMMITS
 
-          ---
-          *Auto-generated PR from branch \`$BRANCH\`*" \
+---
+*Auto-generated PR from branch \`$BRANCH\`*
+EOF
+)" \
             --base main \
             --head "$BRANCH"
