@@ -6,17 +6,16 @@ import requests
 from config import SUBREDDIT, DEFAULT_POST_LIMIT, SORT_MODES
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/html;q=0.9, */*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent": "RedditAIRelationshipsScraper/1.0",
 }
-BASE_URL = "https://www.reddit.com"
+
+PULLPUSH_BASE = "https://api.pullpush.io/reddit"
 
 
 def _get_json(url, params=None, retries=3):
     for attempt in range(retries):
         try:
-            resp = requests.get(url, headers=HEADERS, params=params, timeout=15)
+            resp = requests.get(url, headers=HEADERS, params=params, timeout=30)
             if resp.status_code == 429:
                 wait = 2 ** (attempt + 1)
                 print(f"    Rate limited, waiting {wait}s...")
@@ -34,63 +33,73 @@ def _get_json(url, params=None, retries=3):
     return None
 
 
-def _extract_comment(comment_data):
-    d = comment_data.get("data", {})
-    created = d.get("created_utc", 0)
+def _extract_comment(c):
+    created = c.get("created_utc", 0)
     return {
-        "id": d.get("id", ""),
-        "body": d.get("body", ""),
-        "author": d.get("author", "[deleted]"),
+        "id": c.get("id", ""),
+        "body": c.get("body", ""),
+        "author": c.get("author", "[deleted]"),
         "created_utc": created,
         "created_datetime": datetime.fromtimestamp(created, tz=timezone.utc).isoformat() if created else "",
-        "score": d.get("score", 0),
-        "parent_id": d.get("parent_id", ""),
-        "is_submitter": d.get("is_submitter", False),
+        "score": c.get("score", 0),
+        "parent_id": c.get("parent_id", ""),
+        "is_submitter": c.get("is_submitter", False),
     }
 
 
-def _extract_post(post_data):
-    d = post_data.get("data", {})
-    created = d.get("created_utc", 0)
-    permalink = d.get("permalink", "")
+def _extract_post(p):
+    created = p.get("created_utc", 0)
+    permalink = p.get("permalink", "")
     return {
-        "id": d.get("id", ""),
-        "title": d.get("title", ""),
-        "selftext": d.get("selftext", ""),
-        "author": d.get("author", "[deleted]"),
+        "id": p.get("id", ""),
+        "title": p.get("title", ""),
+        "selftext": p.get("selftext", ""),
+        "author": p.get("author", "[deleted]"),
         "created_utc": created,
         "created_datetime": datetime.fromtimestamp(created, tz=timezone.utc).isoformat() if created else "",
-        "score": d.get("score", 0),
-        "upvote_ratio": d.get("upvote_ratio", 0),
-        "num_comments": d.get("num_comments", 0),
-        "url": d.get("url", ""),
+        "score": p.get("score", 0),
+        "upvote_ratio": p.get("upvote_ratio", 0),
+        "num_comments": p.get("num_comments", 0),
+        "url": p.get("url", ""),
         "permalink": f"https://reddit.com{permalink}" if permalink else "",
-        "link_flair_text": d.get("link_flair_text"),
+        "link_flair_text": p.get("link_flair_text"),
     }
 
 
-def _parse_comment_tree(children):
+def scrape_comments_for_post(post_id, subreddit_name=SUBREDDIT):
+    """Fetch all comments for a given post via PullPush."""
     comments = []
-    if not children:
-        return comments
-    for child in children:
-        if child.get("kind") != "t1":
-            continue
-        comments.append(_extract_comment(child))
-        replies = child.get("data", {}).get("replies")
-        if isinstance(replies, dict):
-            reply_children = replies.get("data", {}).get("children", [])
-            comments.extend(_parse_comment_tree(reply_children))
+    params = {
+        "link_id": post_id,
+        "subreddit": subreddit_name,
+        "size": 100,
+        "sort": "asc",
+        "sort_type": "created_utc",
+    }
+
+    url = f"{PULLPUSH_BASE}/search/comment/"
+
+    while True:
+        data = _get_json(url, params=params)
+        if not data:
+            break
+
+        batch = data.get("data", [])
+        if not batch:
+            break
+
+        for c in batch:
+            comments.append(_extract_comment(c))
+
+        if len(batch) < 100:
+            break
+
+        # Paginate using the last comment's timestamp
+        last_utc = batch[-1].get("created_utc", 0)
+        params["after"] = last_utc
+        time.sleep(0.5)
+
     return comments
-
-
-def scrape_comments(post_id, subreddit_name=SUBREDDIT):
-    url = f"{BASE_URL}/r/{subreddit_name}/comments/{post_id}.json"
-    data = _get_json(url, params={"limit": 500, "depth": 10})
-    if not data or len(data) < 2:
-        return []
-    children = data[1].get("data", {}).get("children", [])
-    return _parse_comment_tree(children)
 
 
 def scrape_posts(subreddit_name=SUBREDDIT, limit=DEFAULT_POST_LIMIT, sort_modes=None):
@@ -101,49 +110,53 @@ def scrape_posts(subreddit_name=SUBREDDIT, limit=DEFAULT_POST_LIMIT, sort_modes=
     posts = []
 
     for mode in sort_modes:
-        print(f"  Fetching '{mode}' posts from r/{subreddit_name}...")
+        print(f"  Fetching '{mode}' posts from r/{subreddit_name} via PullPush...")
 
-        params = {"limit": min(limit, 100)}
+        params = {
+            "subreddit": subreddit_name,
+            "size": min(limit, 100),
+            "sort": "desc",
+            "sort_type": "created_utc",
+        }
+
         if mode == "top":
-            params["t"] = "all"
+            params["sort_type"] = "score"
+        elif mode == "hot":
+            params["sort_type"] = "score"
 
-        url = f"{BASE_URL}/r/{subreddit_name}/{mode}.json"
-        after = None
+        url = f"{PULLPUSH_BASE}/search/submission/"
         count = 0
         fetched = 0
 
         while fetched < limit:
-            if after:
-                params["after"] = after
-
             data = _get_json(url, params=params)
             if not data:
                 break
 
-            children = data.get("data", {}).get("children", [])
-            if not children:
+            batch = data.get("data", [])
+            if not batch:
                 break
 
-            for child in children:
-                post_data = child.get("data", {})
-                post_id = post_data.get("id")
+            for p in batch:
+                post_id = p.get("id", "")
                 if not post_id or post_id in seen_ids:
                     continue
                 seen_ids.add(post_id)
 
-                extracted = _extract_post(child)
+                extracted = _extract_post(p)
                 print(f"    [{len(posts) + 1}] {extracted['title'][:80]}")
 
-                extracted["comments"] = scrape_comments(post_id, subreddit_name)
+                extracted["comments"] = scrape_comments_for_post(post_id, subreddit_name)
                 posts.append(extracted)
                 count += 1
 
-            after = data.get("data", {}).get("after")
-            if not after:
+            fetched += len(batch)
+            if len(batch) < 100:
                 break
-            fetched += len(children)
 
-            # Be polite with rate limiting
+            # Paginate using last post's timestamp
+            last_utc = batch[-1].get("created_utc", 0)
+            params["before"] = last_utc
             time.sleep(1)
 
         print(f"  Got {count} new posts from '{mode}' (total unique: {len(posts)})")
