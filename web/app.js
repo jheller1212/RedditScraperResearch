@@ -410,51 +410,48 @@ function showAnalysis(analysis) {
     : "?";
 
   document.getElementById("analysisStats").innerHTML = `
+    <div class="stat-card"><div class="value">${estimatedTotalUnique.toLocaleString()}</div><div class="label">Archived posts</div></div>
     <div class="stat-card"><div class="value">${info.subscribers.toLocaleString()}</div><div class="label">Subscribers</div></div>
-    <div class="stat-card"><div class="value">${info.active_users.toLocaleString()}</div><div class="label">Online now</div></div>
-    <div class="stat-card"><div class="value">${estimatedTotalUnique.toLocaleString()}</div><div class="label">Est. collectible posts</div></div>
     <div class="stat-card"><div class="value">${ageYears}y</div><div class="label">Community age</div></div>
   `;
 
-  // Collection plan
-  const availableSorts = probes.filter((p) => p.available);
-  const includeComments = document.getElementById("includeComments").checked;
-  const limit = parseInt(document.getElementById("limit").value, 10) || 50;
-
-  const planSortsEl = document.getElementById("planSorts");
-  planSortsEl.innerHTML = availableSorts.map((s) => `
-    <div class="plan-sort-item">
-      <span class="plan-sort-label">${s.label}</span>
-      <span class="plan-sort-max">up to ${Math.min(s.estimatedMax, limit).toLocaleString()} posts</span>
-    </div>
-  `).join("");
-
-  const planExplainer = document.getElementById("planExplainer");
-  if (estimatedTotalUnique > 1000) {
-    planExplainer.innerHTML = `This subreddit likely has <strong>more than 1,000 posts</strong>. Reddit limits each listing to ~1,000 results, but by combining multiple sort modes and time filters we can collect up to <strong>~${estimatedTotalUnique.toLocaleString()}</strong> unique posts. Duplicates are automatically removed.`;
-  } else {
-    planExplainer.innerHTML = `We can collect posts using the sort modes below. Each mode returns up to 1,000 posts. Duplicates across modes are automatically removed.`;
-  }
-
-  // Time estimate
-  const selectedSorts = Array.from(document.querySelectorAll("#sortPills .pill.active"));
-  const totalPosts = Math.min(limit * Math.max(selectedSorts.length, 1), estimatedTotalUnique);
-  const etaSeconds = estimateTime(totalPosts, includeComments);
-  const planEstimate = document.getElementById("planEstimate");
-  planEstimate.innerHTML = `
-    <div class="estimate-row">
-      <span>Estimated posts to collect:</span>
-      <strong>${totalPosts.toLocaleString()}</strong>
-    </div>
-    <div class="estimate-row">
-      <span>Estimated time${includeComments ? " (with comments)" : ""}:</span>
-      <strong>${formatDuration(etaSeconds)}</strong>
-    </div>
-    <div class="estimate-hint">You can close this tab during collection and resume later — progress is saved automatically.</div>
-  `;
-
   analysisCard.classList.remove("hidden");
+  updateCollectionEstimate();
 }
+
+// --- Live collection estimate (updates when settings change) ---
+function updateCollectionEstimate() {
+  if (!currentAnalysis) return;
+  const el = document.getElementById("collectionEstimate");
+  if (!el) return;
+
+  const selectedSorts = Array.from(document.querySelectorAll("#sortPills .pill.active"));
+  const sortCount = Math.max(selectedSorts.length, 1);
+  const limit = parseInt(document.getElementById("limit").value, 10) || 50;
+  const includeComments = document.getElementById("includeComments").checked;
+  const totalPosts = Math.min(limit * sortCount, currentAnalysis.estimatedTotalUnique);
+  const etaSeconds = estimateTime(totalPosts, includeComments);
+
+  el.innerHTML = `
+    <div class="estimate-bar">
+      <div class="estimate-item">
+        <span class="estimate-number">${totalPosts.toLocaleString()}</span>
+        <span class="estimate-label">posts to collect</span>
+      </div>
+      <div class="estimate-divider"></div>
+      <div class="estimate-item">
+        <span class="estimate-number">${formatDuration(etaSeconds)}</span>
+        <span class="estimate-label">estimated time${includeComments ? " (with comments)" : ""}</span>
+      </div>
+    </div>
+    <p class="estimate-hint">Progress is saved automatically — you can close this tab and resume later.</p>
+  `;
+}
+
+// Wire settings changes to update the estimate live
+document.getElementById("limit").addEventListener("input", updateCollectionEstimate);
+document.getElementById("includeComments").addEventListener("change", updateCollectionEstimate);
+sortPills.forEach((pill) => pill.addEventListener("click", () => setTimeout(updateCollectionEstimate, 0)));
 
 // --- Scrape Orchestration ---
 scrapeBtn.addEventListener("click", () => startScrape(false));
