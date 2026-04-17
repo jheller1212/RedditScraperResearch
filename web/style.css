@@ -1115,6 +1115,56 @@ footer {
   pointer-events: none;
 }
 
+/* Collection estimate bar */
+.collection-estimate {
+  margin-top: 1rem;
+}
+
+.estimate-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+}
+
+.estimate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.estimate-number {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--lemon);
+  font-family: var(--font-heading);
+}
+
+.estimate-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.estimate-divider {
+  width: 1px;
+  height: 2.5rem;
+  background: var(--glass-border);
+}
+
+.estimate-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
 .time-filter-note, .limit-note {
   font-size: 0.72rem;
   color: var(--text-dim);
@@ -1325,78 +1375,6 @@ footer {
 }
 
 /* Collection plan */
-.collection-plan {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--glass-border);
-}
-
-.collection-plan h3 {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--lemon);
-  margin-bottom: 0.5rem;
-}
-
-.plan-sorts {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-}
-
-.plan-sort-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-surface);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-}
-
-.plan-sort-label {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.plan-sort-max {
-  color: var(--text-dim);
-  font-size: 0.78rem;
-}
-
-.plan-estimate {
-  background: var(--lemon-glow);
-  border: 1px solid var(--lemon-glow-strong);
-  border-radius: var(--radius-sm);
-  padding: 0.85rem 1rem;
-}
-
-.estimate-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.estimate-row + .estimate-row {
-  margin-top: 0.3rem;
-}
-
-.estimate-row strong {
-  color: var(--text);
-}
-
-.estimate-hint {
-  margin-top: 0.6rem;
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  font-style: italic;
-}
 
 .analysis-actions {
   margin-top: 1.25rem;
