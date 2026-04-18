@@ -8,9 +8,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchJSON(url, retries = 3) {
   for (let attempt = 0; attempt < retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const resp = await fetch(url, {
         headers: { Accept: "application/json", "User-Agent": "LemonSqueeze/1.0 (academic research tool)" },
+        signal: controller.signal,
       });
 
       if (resp.status === 429) {
@@ -33,8 +36,11 @@ async function fetchJSON(url, retries = 3) {
         throw new Error(`HTTP ${resp.status}`);
       }
 
-      return await resp.json();
+      const data = await resp.json();
+      clearTimeout(timeout);
+      return data;
     } catch (err) {
+      clearTimeout(timeout);
       if (err.message.includes("Rate limited") || err.message.startsWith("HTTP") || err.message.includes("404")) throw err;
       if (attempt < retries - 1) {
         await delay(2000 * 2 ** attempt);
@@ -122,6 +128,7 @@ async function arcticSearchPosts(subreddit, { limit = 100, before = null, after 
 async function arcticSearchComments(postId, limit = 500) {
   const linkId = postId.startsWith("t3_") ? postId : `t3_${postId}`;
   const allComments = [];
+  const seenIds = new Set();
   let after = null;
 
   // Paginate through comments in batches
@@ -138,7 +145,13 @@ async function arcticSearchComments(postId, limit = 500) {
     const batch = data?.data || [];
     if (batch.length === 0) break;
 
-    allComments.push(...batch);
+    // Deduplicate — time-based pagination can return overlapping comments
+    for (const c of batch) {
+      if (c.id && !seenIds.has(c.id)) {
+        seenIds.add(c.id);
+        allComments.push(c);
+      }
+    }
 
     // Use the last comment's created_utc for pagination
     const last = batch[batch.length - 1];
@@ -296,11 +309,6 @@ async function fetchPostsBatch(subreddit, sort, limit, paginationCursor, timeAft
         after: effectiveAfter || undefined,
       };
 
-      // Score-based pagination: filter to posts with score below last page's minimum
-      if (maxScore !== null) {
-        // PullPush supports score filter; we'll fetch and filter client-side as fallback
-        ppParams.before = undefined;
-      }
       if (beforeUtc) ppParams.before = beforeUtc;
 
       const posts = await pullPushSearchSubmissions(subreddit, ppParams);
@@ -524,7 +532,9 @@ export async function handler(event) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Subreddit name is required" }) };
     }
 
-    const seenIds = new Set(skipIds);
+    // Only use the last 200 skipIds to prevent request body bloat
+    // Client-side deduplication handles the full set
+    const seenIds = new Set(skipIds.slice(-200));
     const effectiveBatch = Math.min(batchSize, 100);
 
     // Custom date range takes priority over preset time filters
@@ -557,11 +567,14 @@ export async function handler(event) {
       posts.push(mapPost(raw));
     }
 
-    // Fetch comments in parallel batches
+    // Fetch comments in parallel batches (with timeout guard for 26s limit)
     if (includeComments) {
       const PARALLEL = 3;
+      const startTime = Date.now();
+      const TIME_BUDGET_MS = 20000; // Leave 6s buffer for response serialization
       const postsNeedingComments = posts.filter((p) => p.num_comments > 0);
       for (let i = 0; i < postsNeedingComments.length; i += PARALLEL) {
+        if (Date.now() - startTime > TIME_BUDGET_MS) break;
         if (i > 0) await delay(1000);
         const batch = postsNeedingComments.slice(i, i + PARALLEL);
         const results = await Promise.all(
@@ -584,12 +597,14 @@ export async function handler(event) {
         nextAfter = `score:${minScore}`;
       } else {
         // For time-sorted: use the oldest post's timestamp
+        // Keep exact value — deduplication via skipIds handles overlap
         const oldestUtc = Math.min(...posts.map((p) => p.created_utc));
         nextAfter = String(oldestUtc);
       }
     }
 
-    const done = !nextAfter || posts.length < effectiveBatch;
+    // Account for deduplication reducing post count below batch size
+    const done = !nextAfter || rawPosts.length < effectiveBatch;
 
     return {
       statusCode: 200,

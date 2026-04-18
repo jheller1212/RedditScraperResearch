@@ -474,6 +474,7 @@ body {
 .pill-group {
   display: flex;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .pill {
@@ -584,7 +585,10 @@ body {
 }
 
 .toggle-switch input {
-  display: none;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .toggle-slider {
@@ -1155,7 +1159,7 @@ footer {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--lemon);
-  font-family: var(--font-heading);
+  font-family: var(--font);
 }
 
 .estimate-label {
