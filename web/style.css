@@ -319,7 +319,9 @@ body {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+  -webkit-font-smoothing: auto;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
@@ -328,8 +330,6 @@ body {
   gap: 0.4rem;
   position: relative;
   overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 .btn-scrape::before {
@@ -349,6 +349,14 @@ body {
 .btn-scrape .btn-icon {
   position: relative;
   z-index: 1;
+}
+
+.btn-scrape .btn-icon svg {
+  filter: brightness(0.55) saturate(1.2);
+}
+
+.btn-download-primary svg {
+  color: #000;
 }
 
 .btn-stop {
@@ -537,6 +545,7 @@ body {
 
 .select-wrapper select:focus {
   border-color: var(--lemon);
+  box-shadow: 0 0 0 3px var(--lemon-glow);
 }
 
 .select-wrapper::after {
@@ -1063,8 +1072,10 @@ footer {
 }
 
 [data-theme="light"] .btn-scrape,
-[data-theme="light"] .btn-analyze {
-  color: #1a1a00;
+[data-theme="light"] .btn-analyze,
+[data-theme="light"] .btn-download-primary,
+[data-theme="light"] .btn-resume {
+  color: #000;
 }
 
 [data-theme="light"] .btn-stop {
@@ -1091,7 +1102,9 @@ footer {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-  text-shadow: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+  -webkit-font-smoothing: auto;
 }
 
 .btn-analyze:hover {
@@ -1222,7 +1235,9 @@ footer {
   font-weight: 700;
   padding: 0.75rem 1.5rem;
   border: none;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+  -webkit-font-smoothing: auto;
 }
 
 .btn-download-primary:hover {
@@ -1285,6 +1300,7 @@ footer {
   margin-bottom: 1.5rem;
   border: 1px solid var(--lemon-glow-strong);
   background: var(--lemon-glow);
+  border-radius: var(--radius);
 }
 
 .resume-info strong {
@@ -1310,7 +1326,9 @@ footer {
   border: none;
   border-radius: var(--radius-sm);
   color: #000;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+  -webkit-font-smoothing: auto;
   font-family: var(--font);
   font-size: 0.82rem;
   font-weight: 700;
@@ -1345,6 +1363,7 @@ footer {
 .analysis-card {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  border-radius: var(--radius);
 }
 
 .analysis-header {
